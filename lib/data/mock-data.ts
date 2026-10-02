@@ -2,9 +2,15 @@ export interface CivicIssue {
   id: string;
   title: string;
   description: string;
-  category: "Roads" | "Water" | "Sanitation" | "Electricity" | "Waste" | "Traffic" | "Parks";
-  status: "Reported" | "AI Verified" | "Assigned" | "In Progress" | "Resolved" | "Pending Citizen Verification" | "Verified Resolved";
+  category: "Roads" | "Water" | "Sanitation" | "Electricity" | "Waste" | "Traffic" | "Parks" | "Innovation";
+  status: "Reported" | "AI Verified" | "Assigned" | "In Progress" | "Resolved" | "Pending Citizen Verification" | "Verified Resolved" | "Under Review" | "Feasibility Approved" | "Pilot Scheduled" | "Budget Allocated";
   urgency: "Critical" | "High" | "Moderate" | "Low";
+  isInnovation?: boolean;
+  innovationTheme?: string;
+  estimatedBudget?: string;
+  communityBenefit?: string;
+  officerVerdict?: "Under Review" | "Feasibility Approved" | "Pilot Scheduled" | "Budget Allocated" | "Rejected";
+  officerFeedback?: string;
   location: {
     address: string;
     ward: string;

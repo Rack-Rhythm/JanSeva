@@ -137,7 +137,7 @@ function FeedPageContent() {
   const [searchQuery, setSearchQuery] = useState(initialQParam);
   const [sortBy, setSortBy] = useState<"upvotes" | "recent" | "urgency">("recent");
 
-  const categories = ["All", "Sanitation", "Roads", "Water", "Electricity", "Waste", "Traffic", "Parks"];
+  const categories = ["All", "Innovation", "Sanitation", "Roads", "Water", "Electricity", "Waste", "Traffic", "Parks"];
 
   const filteredIssues = issues
     .filter((issue) => {
@@ -155,7 +155,14 @@ function FeedPageContent() {
       if (activeTab === "in_progress" && issue.status !== "In Progress" && issue.status !== "Assigned") return false;
 
       // 3. Category filter
-      if (selectedCategory !== "All" && issue.category.toLowerCase() !== selectedCategory.toLowerCase()) return false;
+      if (selectedCategory !== "All") {
+        if (selectedCategory === "Innovation") {
+          const isInnov = issue.category === "Innovation" || issue.isInnovation || (issue as any).aiAnalysis?.is_innovation;
+          if (!isInnov) return false;
+        } else if (issue.category.toLowerCase() !== selectedCategory.toLowerCase()) {
+          return false;
+        }
+      }
 
       // 4. Search query filter
       if (searchQuery.trim()) {
