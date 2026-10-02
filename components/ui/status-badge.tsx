@@ -2,8 +2,10 @@ import React from "react";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, Clock, AlertTriangle, Sparkles, Wrench, ShieldCheck } from "lucide-react";
 
+import { CivicIssue } from "@/lib/data/mock-data";
+
 interface StatusBadgeProps {
-  status: "Reported" | "AI Verified" | "Assigned" | "In Progress" | "Resolved" | "Pending Citizen Verification" | "Verified Resolved";
+  status: CivicIssue["status"] | string;
   className?: string;
   size?: "sm" | "md" | "lg";
 }
@@ -80,6 +82,58 @@ export function StatusBadge({ status, className, size = "md" }: StatusBadgeProps
         >
           <Clock className="w-3.5 h-3.5 text-amber-600" />
           Dispatched
+        </span>
+      );
+    case "Feasibility Approved":
+      return (
+        <span
+          className={cn(
+            "inline-flex items-center rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 font-semibold tracking-wide shadow-sm",
+            sizeClasses[size],
+            className
+          )}
+        >
+          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+          Feasibility Approved
+        </span>
+      );
+    case "Pilot Scheduled":
+      return (
+        <span
+          className={cn(
+            "inline-flex items-center rounded-full bg-blue-100 text-blue-900 border border-blue-300 font-semibold tracking-wide shadow-sm",
+            sizeClasses[size],
+            className
+          )}
+        >
+          <ShieldCheck className="w-3.5 h-3.5 text-blue-700" />
+          Pilot Scheduled
+        </span>
+      );
+    case "Budget Allocated":
+      return (
+        <span
+          className={cn(
+            "inline-flex items-center rounded-full bg-purple-100 text-purple-900 border border-purple-300 font-semibold tracking-wide shadow-sm",
+            sizeClasses[size],
+            className
+          )}
+        >
+          <Sparkles className="w-3.5 h-3.5 text-purple-700" />
+          Budget Allocated
+        </span>
+      );
+    case "Under Review":
+      return (
+        <span
+          className={cn(
+            "inline-flex items-center rounded-full bg-amber-50 text-amber-900 border border-amber-300 font-semibold tracking-wide shadow-sm",
+            sizeClasses[size],
+            className
+          )}
+        >
+          <Clock className="w-3.5 h-3.5 text-amber-600" />
+          Under Review
         </span>
       );
     case "Reported":

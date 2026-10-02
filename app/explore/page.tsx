@@ -33,7 +33,8 @@ import {
   TrendingUp,
   Leaf,
   Layers,
-  ChevronDown
+  ChevronDown,
+  Lightbulb
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -109,6 +110,14 @@ export default function ExplorePage() {
           >
             <Zap className="w-3.5 h-3.5 text-amber-500" />
             <span>Live Feed</span>
+          </button>
+
+          <button
+            onClick={() => router.push("/innovations")}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition-all hover:text-slate-900 whitespace-nowrap"
+          >
+            <Lightbulb className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Innovations</span>
           </button>
 
           <button

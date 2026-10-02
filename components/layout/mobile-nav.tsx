@@ -15,7 +15,8 @@ import {
   Calendar,
   Vote,
   Layers,
-  Radio
+  Radio,
+  Lightbulb
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -37,7 +38,7 @@ export function MobileNav() {
   // Citizen Navigation
   const citizenNavItems = [
     { label: t("home"), href: "/feed", icon: LayoutGrid },
-    { label: t("explore"), href: "/explore", icon: Compass },
+    { label: "Innovations", href: "/innovations", icon: Lightbulb },
     { label: t("report"), href: "/report", icon: PlusCircle, isCenter: true },
     { label: t("map"), href: "/map", icon: Map },
     { label: t("profile"), href: "/profile", icon: User },
@@ -46,10 +47,10 @@ export function MobileNav() {
   // Authority Operations Navigation
   const officerNavItems = [
     { label: "Workbench", href: `/officer/${officerDept}`, tab: "workbench", icon: LayoutGrid },
-    { label: "Breaches", href: `/officer/${officerDept}?tab=escalations`, tab: "escalations", icon: AlertTriangle, badge: "2" },
+    { label: "Innovations", href: `/officer/${officerDept}?tab=innovations`, tab: "innovations", icon: Lightbulb },
     { label: "Squads", href: `/officer/${officerDept}?tab=squads`, tab: "squads", icon: Users, isCenter: true },
     { label: "Polls", href: `/officer/${officerDept}?tab=polls`, tab: "polls", icon: Vote },
-    { label: "Calendar", href: `/officer/${officerDept}?tab=calendar`, tab: "calendar", icon: Calendar },
+    { label: "Breaches", href: `/officer/${officerDept}?tab=escalations`, tab: "escalations", icon: AlertTriangle, badge: "2" },
   ];
 
   const activeItems = isOfficer ? officerNavItems : citizenNavItems;

@@ -76,8 +76,22 @@ interface AppContextType {
     issueId: string,
     status: CivicIssue["status"],
     note?: string,
-    photo?: string
+    photo?: string,
+    extraFields?: {
+      officer_verdict?: string;
+      officer_feedback?: string;
+      estimated_budget?: string;
+      assigned_department?: string;
+    }
   ) => void;
+
+  updateInnovationVerdict: (
+    issueId: string,
+    verdict: "Under Review" | "Feasibility Approved" | "Pilot Scheduled" | "Budget Allocated" | "Rejected",
+    feedbackNote: string,
+    assignedDept?: string,
+    estimatedBudget?: string
+  ) => Promise<void>;
 
   voteVerification: (
     issueId: string,
@@ -703,19 +717,25 @@ export function AppProvider({
 
     const now = new Date().toISOString();
 
+    const isInnovation = Boolean(newIssueData.isInnovation || newIssueData.category === "Innovation");
+
     let createdIssue: CivicIssue = {
       id,
       title:
         newIssueData.title ||
-        "Civic Grievance Report",
+        (isInnovation ? "Community Innovation Proposal" : "Civic Grievance Report"),
       description:
         newIssueData.description ||
-        "Reported via JanSeva AI Quick Assistant.",
-      category:
-        newIssueData.category || "Sanitation",
-      status: "AI Verified",
-      urgency:
-        newIssueData.urgency || "High",
+        (isInnovation ? "Innovative community project suggested by citizen." : "Reported via JanSeva AI Quick Assistant."),
+      category: isInnovation ? "Innovation" : (newIssueData.category || "Sanitation"),
+      status: isInnovation ? (newIssueData.status || "Under Review") : "AI Verified",
+      urgency: newIssueData.urgency || "Moderate",
+      isInnovation,
+      innovationTheme: newIssueData.innovationTheme || (isInnovation ? "Sustainable Infrastructure" : undefined),
+      estimatedBudget: newIssueData.estimatedBudget,
+      communityBenefit: newIssueData.communityBenefit,
+      officerVerdict: isInnovation ? (newIssueData.officerVerdict || "Under Review") : undefined,
+      officerFeedback: newIssueData.officerFeedback || "",
       location: newIssueData.location || {
         address: `${DEFAULT_LOCATION.ward}, ${DEFAULT_LOCATION.city}, ${DEFAULT_LOCATION.state}`,
         ward: DEFAULT_LOCATION.ward,
@@ -738,17 +758,30 @@ export function AppProvider({
       },
       aiAnalysis:
         newIssueData.aiAnalysis || {
-          detectedObject: "Verified Infrastructure Hazard",
+          detectedObject: isInnovation ? (newIssueData.innovationTheme || "Community Innovation") : "Verified Infrastructure Hazard",
           confidence: 97.5,
-          estimatedSeverity: "High Priority Civic Issue",
-          predictedDepartment: `${DEFAULT_LOCATION.municipalBody} ${DEFAULT_LOCATION.ward} Maintenance`,
-          suggestedSlaHours: 24,
-          summary: "AI verified valid physical hazard from geo-tagged image.",
+          estimatedSeverity: isInnovation ? "Community Innovation Initiative" : "High Priority Civic Issue",
+          predictedDepartment: isInnovation ? "Municipal Innovation & Urban Planning" : `${DEFAULT_LOCATION.municipalBody} ${DEFAULT_LOCATION.ward} Maintenance`,
+          suggestedSlaHours: isInnovation ? 72 : 24,
+          summary: isInnovation ? (newIssueData.communityBenefit || "Citizen submitted innovation proposal for community benefit.") : "AI verified valid physical hazard from geo-tagged image.",
+          ...(isInnovation ? {
+            is_innovation: true,
+            innovation_theme: newIssueData.innovationTheme,
+            estimated_budget: newIssueData.estimatedBudget,
+            community_benefit: newIssueData.communityBenefit,
+            officer_verdict: "Under Review"
+          } : {})
         },
       assignedDepartment:
-        newIssueData.assignedDepartment ||
-        `${DEFAULT_LOCATION.municipalBody} ${DEFAULT_LOCATION.ward} Rapid Response`,
-      timeline: [
+        newIssueData.assignedDepartment || (isInnovation ? "Urban Planning & Innovation Council" : `${DEFAULT_LOCATION.municipalBody} ${DEFAULT_LOCATION.ward} Rapid Response`),
+      timeline: isInnovation ? [
+        {
+          stage: "Proposal Submitted",
+          timestamp: now,
+          note: `Community Innovation Proposal submitted by ${user.name} for citizen endorsement and government feasibility review.`,
+          actor: user.name,
+        }
+      ] : [
         {
           stage: "Reported",
           timestamp: now,
@@ -996,7 +1029,13 @@ export function AppProvider({
     issueId: string,
     status: CivicIssue["status"],
     note?: string,
-    photo?: string
+    photo?: string,
+    extraFields?: {
+      officer_verdict?: string;
+      officer_feedback?: string;
+      estimated_budget?: string;
+      assigned_department?: string;
+    }
   ) => {
     const actorName = user?.name || "Verified Resident";
     const now = new Date().toISOString();
@@ -1096,6 +1135,7 @@ export function AppProvider({
             resolved_image: photo,
             assigned_officer_id: user?.id,
             officer_name: user?.name,
+            ...(extraFields || {}),
           }),
         }
       );
@@ -1117,6 +1157,51 @@ export function AppProvider({
         e
       );
     }
+  };
+
+  const updateInnovationVerdict = async (
+    issueId: string,
+    verdict: "Under Review" | "Feasibility Approved" | "Pilot Scheduled" | "Budget Allocated" | "Rejected",
+    feedbackNote: string,
+    assignedDept?: string,
+    estimatedBudget?: string
+  ) => {
+    const actorName = user?.name || "Municipal Authority";
+    const now = new Date().toISOString();
+
+    setIssues((prev: CivicIssue[]) =>
+      prev.map((issue: CivicIssue) => {
+        if (issue.id === issueId) {
+          const currentTimeline = Array.isArray(issue.timeline) ? issue.timeline : [];
+          return {
+            ...issue,
+            status: verdict as any,
+            officerVerdict: verdict,
+            officerFeedback: feedbackNote,
+            assignedDepartment: assignedDept || issue.assignedDepartment,
+            estimatedBudget: estimatedBudget || issue.estimatedBudget,
+            updatedAt: now,
+            timeline: [
+              ...currentTimeline,
+              {
+                stage: `Officer Verdict: ${verdict}`,
+                timestamp: now,
+                note: feedbackNote || `Feasibility assessment updated to ${verdict} by ${actorName}.`,
+                actor: actorName,
+              },
+            ],
+          };
+        }
+        return issue;
+      })
+    );
+
+    await updateIssueStatus(issueId, verdict as any, feedbackNote, undefined, {
+      officer_verdict: verdict,
+      officer_feedback: feedbackNote,
+      estimated_budget: estimatedBudget,
+      assigned_department: assignedDept,
+    });
   };
 
   const voteVerification = async (
@@ -1542,6 +1627,7 @@ export function AppProvider({
         deleteIssue,
         mergeIssues,
         updateIssueStatus,
+        updateInnovationVerdict,
         voteVerification,
         addComment,
         notifications,

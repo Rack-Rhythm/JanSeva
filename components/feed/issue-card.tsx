@@ -14,7 +14,9 @@ import {
   MoreVertical,
   Trash2,
   ArrowRight,
-  Check
+  Check,
+  Lightbulb,
+  ShieldCheck
 } from "lucide-react";
 import { formatDate, cn } from "@/lib/utils";
 import { useApp } from "@/lib/context/app-context";
@@ -32,6 +34,13 @@ export function IssueCard({ issue }: IssueCardProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const isOwner = user && (user.id === (issue.reporter as any).id || user.username === issue.reporter.username || user.name === issue.reporter.name || user.email === issue.reporter.name);
+
+  const isInnovation = Boolean(
+    issue.category === "Innovation" ||
+    issue.isInnovation ||
+    (issue as any).aiAnalysis?.is_innovation ||
+    (issue as any).ai_analysis?.is_innovation
+  );
 
   const [localUpvotes, setLocalUpvotes] = useState(issue.upvotes || 0);
   const [localIsUpvoted, setLocalIsUpvoted] = useState(Boolean(issue.isUpvoted));
@@ -166,13 +175,37 @@ export function IssueCard({ issue }: IssueCardProps) {
           <div className="flex items-center sm:flex-col sm:items-end justify-between gap-2 shrink-0 pt-1 sm:pt-0">
             {/* Badges Row */}
             <div className="flex items-center gap-1.5 flex-wrap">
-              {((issue.timesReported && issue.timesReported > 1) || ((issue as any).times_reported && (issue as any).times_reported > 1)) && (
-                <span className="border border-purple-300 text-purple-700 bg-purple-50 text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md inline-flex items-center gap-1 shadow-2xs">
-                  <span>⚡ Reported {issue.timesReported || (issue as any).times_reported}x</span>
-                </span>
+              {isInnovation ? (
+                <>
+                  <span className="border border-emerald-500 text-emerald-800 bg-emerald-50 text-[10px] sm:text-[11px] font-extrabold px-2.5 py-0.5 rounded-md inline-flex items-center gap-1 shadow-2xs">
+                    <Lightbulb className="w-3 h-3 text-emerald-600" />
+                    <span>Community Innovation</span>
+                  </span>
+                  {issue.officerVerdict && (
+                    <span className={cn(
+                      "text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md inline-flex items-center gap-1 shadow-2xs border",
+                      issue.officerVerdict === "Feasibility Approved" || issue.officerVerdict === "Pilot Scheduled"
+                        ? "border-emerald-600 text-emerald-900 bg-emerald-100"
+                        : issue.officerVerdict === "Budget Allocated"
+                        ? "border-purple-500 text-purple-900 bg-purple-100"
+                        : "border-amber-400 text-amber-900 bg-amber-50"
+                    )}>
+                      <span>🏛️ {issue.officerVerdict}</span>
+                    </span>
+                  )}
+                  {renderStatusBadge(issue.status)}
+                </>
+              ) : (
+                <>
+                  {((issue.timesReported && issue.timesReported > 1) || ((issue as any).times_reported && (issue as any).times_reported > 1)) && (
+                    <span className="border border-purple-300 text-purple-700 bg-purple-50 text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md inline-flex items-center gap-1 shadow-2xs">
+                      <span>⚡ Reported {issue.timesReported || (issue as any).times_reported}x</span>
+                    </span>
+                  )}
+                  {renderStatusBadge(issue.status)}
+                  {renderUrgencyBadge(issue.urgency)}
+                </>
               )}
-              {renderStatusBadge(issue.status)}
-              {renderUrgencyBadge(issue.urgency)}
             </div>
 
             {/* 3-dots Menu */}
@@ -251,38 +284,77 @@ export function IssueCard({ issue }: IssueCardProps) {
           </div>
         </div>
 
-        {/* AI Triage Card (Blue/Teal Tinted Box) */}
-        <div className="rounded-2xl p-3 sm:p-4 bg-[#f4f9f8] border border-[#d6ebe2] mb-3 space-y-2">
+        {/* Triage / Proposal Card */}
+        {isInnovation ? (
+          <div className="rounded-2xl p-3 sm:p-4 bg-gradient-to-br from-emerald-50/90 to-teal-50/70 border border-emerald-200/90 mb-3 space-y-2">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm text-emerald-950">
+                <Lightbulb className="w-4 h-4 text-emerald-700 shrink-0" />
+                <span className="truncate">Theme: {issue.innovationTheme || (issue as any).aiAnalysis?.innovation_theme || "Community Solution"}</span>
+              </div>
+              {issue.estimatedBudget && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-300 text-emerald-900 bg-white shadow-2xs">
+                  Est. Budget: {issue.estimatedBudget}
+                </span>
+              )}
+            </div>
 
-          {/* Top Row: AI Triage Label + Confidence */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm text-[#0f5b49]">
-              <Bot className="w-4 h-4 text-[#0f5b49] shrink-0" />
-              <span className="truncate">
-                AI Triage: {issue.aiAnalysis?.detectedObject ? issue.aiAnalysis.detectedObject : "Pending Classification"}
+            {issue.communityBenefit && (
+              <p className="text-xs text-emerald-900 font-medium leading-relaxed">
+                <strong>Community Benefit:</strong> {issue.communityBenefit}
+              </p>
+            )}
+
+            {issue.officerFeedback && (
+              <div className="p-2.5 rounded-xl bg-white/95 border border-emerald-300 text-xs text-emerald-950 font-medium space-y-0.5">
+                <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-800">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Officer Feasibility Assessment:</span>
+                </div>
+                <p className="italic text-slate-700">"{issue.officerFeedback}"</p>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between text-xs text-emerald-800 border-t border-emerald-200/60 pt-2 mt-1 flex-wrap gap-1">
+              <span className="truncate max-w-[220px]">
+                Review Body: <strong className="text-emerald-950 font-bold">{issue.assignedDepartment || "Ward Innovation Council"}</strong>
+              </span>
+              <span className="font-semibold text-emerald-700">
+                Status: {issue.officerVerdict || issue.status || "Under Review"}
               </span>
             </div>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded border border-slate-200 text-slate-500 bg-white shadow-2xs shrink-0">
-              {issue.aiAnalysis?.confidence ? `${issue.aiAnalysis.confidence}%` : "N/A"}
-            </span>
           </div>
+        ) : (
+          <div className="rounded-2xl p-3 sm:p-4 bg-[#f4f9f8] border border-[#d6ebe2] mb-3 space-y-2">
+            {/* Top Row: AI Triage Label + Confidence */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm text-[#0f5b49]">
+                <Bot className="w-4 h-4 text-[#0f5b49] shrink-0" />
+                <span className="truncate">
+                  AI Triage: {issue.aiAnalysis?.detectedObject ? issue.aiAnalysis.detectedObject : "Pending Classification"}
+                </span>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded border border-slate-200 text-slate-500 bg-white shadow-2xs shrink-0">
+                {issue.aiAnalysis?.confidence ? `${issue.aiAnalysis.confidence}%` : "N/A"}
+              </span>
+            </div>
 
-          {/* Middle Row: AI Summary / Dispatch Status */}
-          <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
-            {issue.aiAnalysis?.summary || "Pending review by dispatch."}
-          </p>
+            {/* Middle Row: AI Summary / Dispatch Status */}
+            <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
+              {issue.aiAnalysis?.summary || "Pending review by dispatch."}
+            </p>
 
-          {/* Bottom Row: Routed To + SLA */}
-          <div className="flex items-center justify-between text-xs text-slate-600 border-t border-[#e2efe9] pt-2 mt-1 flex-wrap gap-1">
-            <span className="truncate max-w-[200px]">
-              Routed to: <strong className="text-[#0f5b49] font-bold">{issue.assignedDepartment || "Municipal Dispatch"}</strong>
-            </span>
-            <span className="font-semibold text-slate-500">
-              SLA: ~{issue.aiAnalysis?.suggestedSlaHours ? `${issue.aiAnalysis.suggestedSlaHours}h` : "24h"}
-            </span>
+            {/* Bottom Row: Routed To + SLA */}
+            <div className="flex items-center justify-between text-xs text-slate-600 border-t border-[#e2efe9] pt-2 mt-1 flex-wrap gap-1">
+              <span className="truncate max-w-[200px]">
+                Routed to: <strong className="text-[#0f5b49] font-bold">{issue.assignedDepartment || "Municipal Dispatch"}</strong>
+              </span>
+              <span className="font-semibold text-slate-500">
+                SLA: ~{issue.aiAnalysis?.suggestedSlaHours ? `${issue.aiAnalysis.suggestedSlaHours}h` : "24h"}
+              </span>
+            </div>
           </div>
-
-        </div>
+        )}
 
       </div>
 
@@ -292,19 +364,28 @@ export function IssueCard({ issue }: IssueCardProps) {
         {/* Left Actions: Upvote, Comment, Share */}
         <div className="flex items-center gap-2 sm:gap-4">
 
-          {/* Upvote */}
+          {/* Upvote / Endorse */}
           <button
             type="button"
             onClick={handleUpvote}
             className={cn(
               "flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all select-none min-h-[44px] cursor-pointer",
-              localIsUpvoted
+              isInnovation
+                ? localIsUpvoted
+                  ? "bg-emerald-700 text-white shadow-xs"
+                  : "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200"
+                : localIsUpvoted
                 ? "bg-[#edf7f1] text-[#134431] border border-[#cbe7d7]"
                 : "bg-slate-50 text-slate-700 hover:bg-slate-100"
             )}
           >
-            <ThumbsUp className={cn("w-4 h-4", localIsUpvoted ? "fill-[#134431] text-[#134431]" : "text-slate-600")} />
-            <span>{localUpvotes}</span>
+            <ThumbsUp className={cn("w-4 h-4", localIsUpvoted ? (isInnovation ? "fill-white text-white" : "fill-[#134431] text-[#134431]") : "text-slate-600")} />
+            <span>{isInnovation ? (localIsUpvoted ? "Endorsed" : "Endorse Idea") : localUpvotes}</span>
+            {isInnovation && (
+              <span className={cn("px-1.5 py-0.2 rounded-full text-[10px] font-black", localIsUpvoted ? "bg-emerald-800 text-white" : "bg-white text-emerald-900 border border-emerald-200")}>
+                {localUpvotes}
+              </span>
+            )}
           </button>
 
           {/* Comments Link */}

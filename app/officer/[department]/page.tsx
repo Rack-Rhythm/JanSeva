@@ -58,9 +58,12 @@ import {
   Compass,
   PieChart,
   Sliders,
-  Share2
+  Share2,
+  Lightbulb,
+  Rocket
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { OfficerFeasibilityModal } from "@/components/innovations/officer-feasibility-modal";
 
 // Comprehensive Mock Field Squads Roster
 const SQUADS_ROSTER = [
@@ -150,6 +153,7 @@ function DepartmentOfficerContent() {
     user,
     issues,
     updateIssueStatus,
+    updateInnovationVerdict,
     mergeIssues,
     notifications,
     setNotifications,
@@ -240,6 +244,22 @@ function DepartmentOfficerContent() {
     daysLeft: "7"
   });
   const [duplicates, setDuplicates] = useState<any[]>([]);
+
+  // Innovation Proposals State for Authority Officer
+  const [selectedInnovationForReview, setSelectedInnovationForReview] = useState<CivicIssue | null>(null);
+  const [isOfficerFeasibilityModalOpen, setIsOfficerFeasibilityModalOpen] = useState(false);
+  const [officerInnovationStatusFilter, setOfficerInnovationStatusFilter] = useState<"all" | "review" | "approved" | "pilot">("all");
+
+  const deptInnovations = useMemo(() => {
+    return issues.filter((i) => {
+      return (
+        i.category === "Innovation" ||
+        i.isInnovation === true ||
+        Boolean((i as any).aiAnalysis?.is_innovation) ||
+        Boolean((i as any).ai_analysis?.is_innovation)
+      );
+    });
+  }, [issues]);
 
   // Dynamically detect potential candidate duplicate pairs in active department tickets
   useEffect(() => {
@@ -1202,6 +1222,242 @@ function DepartmentOfficerContent() {
 
           </div>
         </>
+      )}
+
+      {/* DEDICATED TAB: CITIZEN INNOVATION PROPOSALS & FEASIBILITY QUEUE */}
+      {currentTab === "innovations" && (
+        <div className="space-y-6 animate-fadeIn">
+          {/* Header */}
+          <div className="p-6 rounded-3xl bg-white border border-slate-100 shadow-soft flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="font-headline font-black text-xl text-slate-900 flex items-center gap-2">
+                <Lightbulb className="w-5 h-5 text-emerald-600" />
+                <span>Citizen Innovation Proposals &amp; Feasibility Queue</span>
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Citizen-suggested community solutions (bike shelters, parking cooling, green canopies). Ranked by citizen demand for officer technical review &amp; ward pilot allocation.
+              </p>
+            </div>
+            <Link
+              href="/innovations"
+              className="px-4 py-2.5 rounded-2xl bg-[#134431] hover:bg-[#0c2e21] text-white font-bold text-xs shadow-md transition-all flex items-center gap-2 self-start"
+            >
+              <span>Public Innovation Hub</span>
+              <ExternalLink className="w-3.5 h-3.5 text-emerald-300" />
+            </Link>
+          </div>
+
+          {/* Metric Donut / KPI cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-5 rounded-3xl bg-white border border-slate-100 shadow-soft space-y-1">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Proposals</span>
+              <p className="font-headline font-black text-2xl text-slate-900">{deptInnovations.length}</p>
+              <p className="text-[11px] text-slate-500">Submitted by citizens</p>
+            </div>
+            <div className="p-5 rounded-3xl bg-white border border-slate-100 shadow-soft space-y-1">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Citizen Endorsements</span>
+              <p className="font-headline font-black text-2xl text-emerald-700">
+                {deptInnovations.reduce((acc, i) => acc + (i.upvotes || 0), 0)}
+              </p>
+              <p className="text-[11px] text-emerald-600 font-semibold">Community demand backing</p>
+            </div>
+            <div className="p-5 rounded-3xl bg-white border border-slate-100 shadow-soft space-y-1">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Feasibility Approved</span>
+              <p className="font-headline font-black text-2xl text-teal-700">
+                {deptInnovations.filter(i => i.officerVerdict === "Feasibility Approved" || i.status === "Feasibility Approved").length}
+              </p>
+              <p className="text-[11px] text-slate-500">Greenlit for ward implementation</p>
+            </div>
+            <div className="p-5 rounded-3xl bg-white border border-slate-100 shadow-soft space-y-1">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Ward Pilots Scheduled</span>
+              <p className="font-headline font-black text-2xl text-purple-700">
+                {deptInnovations.filter(i => i.officerVerdict === "Pilot Scheduled" || i.officerVerdict === "Budget Allocated").length}
+              </p>
+              <p className="text-[11px] text-slate-500">Sites &amp; contractors assigned</p>
+            </div>
+          </div>
+
+          {/* Filter Bar */}
+          <div className="p-4 rounded-3xl bg-white border border-slate-100 shadow-soft flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-500">Status Filter:</span>
+              {[
+                { id: "all", label: `All Proposals (${deptInnovations.length})` },
+                { id: "review", label: "🟡 Pending Review" },
+                { id: "approved", label: "✅ Feasibility Approved" },
+                { id: "pilot", label: "🚀 Pilots Scheduled" },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setOfficerInnovationStatusFilter(tab.id as any)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-full text-xs font-bold transition-all",
+                    officerInnovationStatusFilter === tab.id
+                      ? "bg-[#134431] text-white shadow-xs"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  )}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <span className="text-xs font-bold text-emerald-800 bg-[#edf7f1] px-3 py-1 rounded-full border border-[#cbe7d7]">
+              Ranked by Citizen Upvote Priority
+            </span>
+          </div>
+
+          {/* Proposals List */}
+          {deptInnovations.length === 0 ? (
+            <div className="p-12 text-center rounded-3xl bg-white border border-slate-200/60 border-dashed space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-[#134431] flex items-center justify-center mx-auto">
+                <Lightbulb className="w-7 h-7" />
+              </div>
+              <h3 className="text-base font-bold text-slate-800">No Citizen Innovation Proposals In Queue</h3>
+              <p className="text-slate-500 text-xs max-w-md mx-auto">
+                Citizens can submit creative solutions (bike shelters, parking cooling systems, solar canopies) from the Innovation Hub. They will appear here for officer feasibility assessment.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {deptInnovations
+                .filter((item) => {
+                  if (officerInnovationStatusFilter === "review") {
+                    const v = item.officerVerdict || item.status;
+                    return v === "Under Review" || v === "Reported";
+                  }
+                  if (officerInnovationStatusFilter === "approved") {
+                    return item.officerVerdict === "Feasibility Approved" || item.status === "Feasibility Approved";
+                  }
+                  if (officerInnovationStatusFilter === "pilot") {
+                    return item.officerVerdict === "Pilot Scheduled" || item.officerVerdict === "Budget Allocated";
+                  }
+                  return true;
+                })
+                .sort((a, b) => (b.upvotes || 0) - (a.upvotes || 0))
+                .map((item) => {
+                  const theme = item.innovationTheme || (item as any).aiAnalysis?.innovation_theme || (item as any).aiAnalysis?.innovationTheme || "Community Solution";
+                  const pin = (item as any).pin_code || (item as any).pincode || item.location?.pincode || "";
+                  const verdict = item.officerVerdict || item.status || "Under Review";
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="p-5 rounded-3xl bg-white border border-slate-100 shadow-soft hover:border-emerald-200 transition-all flex flex-col justify-between space-y-4 group"
+                    >
+                      <div className="space-y-3">
+                        {/* Top row */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-[#edf7f1] text-[#134431] border border-[#cbe7d7]">
+                              #{item.id}
+                            </span>
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                              <Lightbulb className="w-3 h-3 text-emerald-600" />
+                              <span>{theme}</span>
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1 text-xs font-black text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                            <span>{item.upvotes} Citizen Votes</span>
+                          </div>
+                        </div>
+
+                        {/* Title & Desc */}
+                        <div className="flex gap-3 items-start">
+                          {item.images?.reported && (
+                            <img
+                              src={item.images.reported}
+                              alt={item.title}
+                              className="w-20 h-20 rounded-2xl object-cover shrink-0 border border-slate-200 shadow-2xs"
+                            />
+                          )}
+                          <div className="space-y-1 min-w-0">
+                            <h4 className="font-headline font-bold text-sm sm:text-base text-slate-900 group-hover:text-[#134431] transition-colors leading-snug">
+                              {item.title}
+                            </h4>
+                            <p className="text-xs text-slate-600 line-clamp-2">{item.description}</p>
+                            <div className="flex items-center gap-1 text-[11px] text-slate-500 pt-0.5">
+                              <MapPin className="w-3 h-3 text-[#134431] shrink-0" />
+                              <span className="truncate">{item.location?.address || (pin ? `PIN ${pin}` : "Ward Area")}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Community Benefit */}
+                        {item.communityBenefit && (
+                          <div className="p-2.5 rounded-xl bg-slate-50 text-xs text-slate-700 space-y-0.5 border border-slate-100">
+                            <span className="font-bold text-[#134431] text-[11px]">Target Impact:</span>
+                            <p className="text-slate-600">{item.communityBenefit}</p>
+                          </div>
+                        )}
+
+                        {/* Officer Status Box */}
+                        <div className="p-3 rounded-2xl bg-[#edf7f1]/70 border border-[#cbe7d7] text-xs space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-black text-[#134431] flex items-center gap-1">
+                              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Verdict: {verdict}</span>
+                            </span>
+                            {item.estimatedBudget && (
+                              <span className="text-[10px] font-bold bg-white px-2 py-0.5 rounded border border-[#cbe7d7] text-slate-700">
+                                Budget: {item.estimatedBudget}
+                              </span>
+                            )}
+                          </div>
+                          {item.officerFeedback && (
+                            <p className="text-[11px] italic text-slate-700">
+                              "{item.officerFeedback}"
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action Row */}
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                          <span>Reported by: <strong>{item.reporter?.name || "Citizen"}</strong></span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              await updateInnovationVerdict(
+                                item.id,
+                                "Feasibility Approved",
+                                "On-site spatial feasibility confirmed by Ward Officer. Recommended for Ward Pilot.",
+                                item.assignedDepartment || "Public Works Department",
+                                item.estimatedBudget || "₹2.5 Lakhs"
+                              );
+                              setOfficerActionToast(`Approved feasibility for #${item.id}!`);
+                              setTimeout(() => setOfficerActionToast(null), 5000);
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-300 transition-colors"
+                          >
+                            ✓ Quick Approve
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedInnovationForReview(item);
+                              setIsOfficerFeasibilityModalOpen(true);
+                            }}
+                            className="px-3.5 py-1.5 rounded-xl bg-[#134431] hover:bg-[#0c2e21] text-white text-xs font-bold shadow-xs transition-colors flex items-center gap-1"
+                          >
+                            <ShieldCheck className="w-3 h-3 text-emerald-300" />
+                            <span>Evaluate Feasibility</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+        </div>
       )}
 
       {/* 4. DEDICATED TAB: SQUAD DISPATCH & VEHICLE ROSTER */}
@@ -2706,6 +2962,17 @@ function DepartmentOfficerContent() {
             </div>
           </div>
         </div>
+      )}
+
+      {selectedInnovationForReview && (
+        <OfficerFeasibilityModal
+          isOpen={isOfficerFeasibilityModalOpen}
+          onClose={() => {
+            setIsOfficerFeasibilityModalOpen(false);
+            setSelectedInnovationForReview(null);
+          }}
+          issue={selectedInnovationForReview}
+        />
       )}
 
     </div>

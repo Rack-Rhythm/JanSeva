@@ -30,7 +30,8 @@ import {
   FileSpreadsheet,
   CheckCircle2,
   ShieldAlert,
-  Radio
+  Radio,
+  Lightbulb
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -77,6 +78,7 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
     { label: t("home"), href: "/feed", icon: LayoutGrid },
     { label: t("explore"), href: "/explore", icon: Compass },
     { label: t("report"), href: "/report", icon: PlusCircle, highlight: true },
+    { label: "Innovation Hub", href: "/innovations", icon: Lightbulb, badge: "Ideas" },
     { label: t("map"), href: "/map", icon: Map },
     { label: "Ward Budget", href: "/ward-budget", icon: Wallet },
     {
@@ -91,6 +93,7 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
   // Authority / Officer operational items
   const officerNavItems: NavItem[] = [
     { label: "Command Workbench", href: `/officer/${officerDept}`, tab: "workbench", icon: LayoutGrid },
+    { label: "Citizen Innovations", href: `/officer/${officerDept}?tab=innovations`, tab: "innovations", icon: Lightbulb, badge: "Review", badgeColor: "bg-emerald-100 text-emerald-800" },
     {
       label: "Escalations & Breaches",
       href: `/officer/${officerDept}?tab=escalations`,
